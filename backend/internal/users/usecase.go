@@ -58,7 +58,7 @@ func (usecase *UserUsecase) LoginUser(username, password string) (string, error)
 
 	// Validate the password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
-		return "", fmt.Errorf("invalid password")
+		return "", fmt.Errorf("wrong password")
 	}
 
 	// Generate a token

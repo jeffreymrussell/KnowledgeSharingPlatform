@@ -17,15 +17,19 @@ func (h *UserHandler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
-	user, err := h.Usecase.RegisterUser(dto)
+	err = ValidateRegisterUserDTO(dto)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	_, err = h.Usecase.RegisterUser(dto)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(user)
+	//json.NewEncoder(w).Encode(dto)
 }
 
 func (h *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {

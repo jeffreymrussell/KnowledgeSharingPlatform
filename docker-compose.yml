@@ -1,0 +1,12 @@
+# backend/docker-compose.yml
+version: '3'
+services:
+  app:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=sqlite:///data.db
+    volumes:
+      - .:/app
+      - ./data:/data

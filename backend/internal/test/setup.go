@@ -3,16 +3,10 @@ package test
 import (
 	"KnowledgeSharingPlatform/internal"
 	"database/sql"
-	_ "github.com/mattn/go-sqlite3"
 	"os"
 )
 
-func InitializeDatabase(filePath string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", filePath)
-	if err != nil {
-		return nil, err
-	}
-
+func InitializeDatabase(db *sql.DB) error {
 	// Execute table creation queries
 	tableCreationQueries := []string{
 		`CREATE TABLE IF NOT EXISTS users (
@@ -38,20 +32,20 @@ func InitializeDatabase(filePath string) (*sql.DB, error) {
 	for _, query := range tableCreationQueries {
 		_, err := db.Exec(query)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	return db, nil
+	return nil
 }
 
-func DeleteTable(config internal.Config) {
+func DeleteTable(dbConfig internal.DbConfig) {
 
-	err := config.DB.Close()
+	err := dbConfig.DB.Close()
 	if err != nil {
 		panic("Failed to close DB")
 	}
-	err = os.Remove(config.DbFilePath)
+	err = os.Remove(dbConfig.DbFilePath)
 	if err != nil {
 		panic("failed to remove db")
 	}

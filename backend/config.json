@@ -1,0 +1,5 @@
+{
+  "ServerPort": 8080,
+  "JWTSecret": "tdiy678cthbmtr9876yuxbomeuhf,3pgcohebummentuestsecret",
+  "DatabaseURL": "main.sqlite"
+}

@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"io"
 	"net/http"
@@ -30,21 +31,22 @@ type AuthResponse struct {
 type UserTestSuite struct {
 	suite.Suite
 	Server         *httptest.Server
-	config         internal.Config
+	config         internal.DbConfig
 	registeredUser users.LoginUserDTO
 }
 
 func (suite *UserTestSuite) SetupTest() {
-	db, err := test.InitializeDatabase("test_db.sqlite")
+	db := bootstrap.SetupDatabase("test_db.sqlite")
+	err := test.InitializeDatabase(db)
 	if err != nil {
 		panic("Failed to open sqlite")
 	}
 
-	suite.config = internal.Config{
+	suite.config = internal.DbConfig{
 		DB:         db,
 		DbFilePath: "test_db.sqlite",
 	}
-	router := bootstrap.Router(suite.config)
+	router := bootstrap.SetupRouter(suite.config)
 	suite.Server = httptest.NewServer(router)
 	if err != nil {
 		return
@@ -52,16 +54,17 @@ func (suite *UserTestSuite) SetupTest() {
 
 	suite.registeredUser = users.LoginUserDTO{
 		Username: "registereduser",
-		Password: "registeredpassword",
+		Password: "Registeredpassword1!",
 	}
-	payload := "{\"username\": \"registereduser\", \"password\": \"registeredpassword\"}"
+	payload := "{\"username\": \"registereduser\", \"password\": \"Registeredpassword1!\", \"email\": \"test@example.com\"}"
 
 	registerURL := fmt.Sprintf("%s/register", suite.Server.URL)
 
 	req, _ := http.NewRequest(http.MethodPost, registerURL, bytes.NewBuffer([]byte(payload)))
 	res, err := http.DefaultClient.Do(req)
+	data := getBodyAsString(res)
 	assert.NoError(suite.T(), err, "Shouldn't have an error running the registration")
-	assert.Equal(suite.T(), 201, res.StatusCode, "201 for user registration")
+	assert.Equal(suite.T(), 201, res.StatusCode, fmt.Sprintf("201 for user registration: %s", data))
 }
 
 func (suite *UserTestSuite) AfterTest(_ string, _ string) {
@@ -72,12 +75,6 @@ func Test_UserTestSuite(t *testing.T) {
 
 }
 func (suite *UserTestSuite) TestUserAuthentication() {
-	// Initialize your HTTP server here (replace with your actual server)
-
-	//defer ts.Close()
-	// Test Setup: Create a registered user
-
-	//// LoginUser and LogoutUser Test
 	suite.T().Run("LoginUser and LogoutUser", func(t *testing.T) {
 		// Login
 		payload, _ := json.Marshal(suite.registeredUser)
@@ -87,7 +84,7 @@ func (suite *UserTestSuite) TestUserAuthentication() {
 		assert.NoError(t, err, "There shouldn't be an error from login")
 
 		data := getBodyAsString(res)
-		assert.Equal(t, http.StatusOK, res.StatusCode, fmt.Sprintf("Login: Expected status code 200. %s", data))
+		require.Equal(t, http.StatusOK, res.StatusCode, fmt.Sprintf("Login: Expected status code 200. %s", data))
 
 		// Extract token from login response
 		var authResponse AuthResponse
@@ -103,19 +100,19 @@ func (suite *UserTestSuite) TestUserAuthentication() {
 		data = getBodyAsString(res)
 		assert.Equal(t, http.StatusOK, res.StatusCode, fmt.Sprintf("Logout: Expected status code 200. %s", data))
 	})
-	//
-	//// LoginUserWithIncorrectCredentials Test
-	//t.Run("LoginUserWithIncorrectCredentials", func(t *testing.T) {
-	//	user := TestUser{
-	//		Username: "wronguser",
-	//		Password: "wrongpassword",
-	//	}
-	//	payload, _ := json.Marshal(user)
-	//	req := httptest.NewRequest("POST", "/login", bytes.NewBuffer(payload))
-	//	res := httptest.NewRecorder()
-	//	router.ServeHTTP(res, req)
-	//	assert.Equal(t, http.StatusUnauthorized, res.Code, "Expected status code 401")
-	//})
+
+	// LoginUserWithIncorrectCredentials Test
+	suite.T().Run("LoginUserWithIncorrectCredentials", func(t *testing.T) {
+		user := TestUser{
+			Username: "wronguser",
+			Password: "wrongpassword",
+		}
+		payload, _ := json.Marshal(user)
+		loginURL := fmt.Sprintf("%s/login", suite.Server.URL)
+		req, _ := http.NewRequest(http.MethodPost, loginURL, bytes.NewBuffer(payload))
+		res, _ := http.DefaultClient.Do(req)
+		assert.Equal(t, http.StatusUnauthorized, res.StatusCode, "Expected status code 401")
+	})
 }
 
 func getBodyAsString(res *http.Response) []byte {

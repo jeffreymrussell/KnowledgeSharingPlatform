@@ -6,9 +6,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func Router(config internal.Config) *mux.Router {
-	// Initialize UserUsecase with dependencies
-
+func SetupRouter(config internal.DbConfig) *mux.Router {
 	dbAdapter := &users.SQLiteAdapter{
 		DB: config.DB,
 	}

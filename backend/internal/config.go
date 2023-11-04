@@ -12,27 +12,32 @@ type DbConfig struct {
 
 type Config struct {
 	ServerPort  string
-	JWTSecret   string
+	JWTSecret   []byte
 	DatabaseURL string
 }
 
-func LoadConfig() (*Config, error) {
+var GlobalConfig *Config
+
+func LoadConfig() error {
 	viper.SetConfigName("config")
 	viper.AddConfigPath(".")
 	viper.AutomaticEnv()
 
 	var config Config
 	if err := viper.ReadInConfig(); err != nil {
-		return nil, err
+		return err
 	}
 	err := viper.Unmarshal(&config)
+	if err != nil {
+		return err
+	}
 	validConfig := true
 	errors := ""
 	if config.ServerPort == "" {
 		validConfig = false
 		errors += "Server port not specified, please specify.\n"
 	}
-	if config.JWTSecret == "" {
+	if string(config.JWTSecret) == "" {
 		validConfig = false
 		errors += "JWT Secret not specified, please specify.\n"
 	}
@@ -44,5 +49,7 @@ func LoadConfig() (*Config, error) {
 		panic(errors)
 	}
 
-	return &config, err
+	GlobalConfig = &config
+
+	return nil
 }

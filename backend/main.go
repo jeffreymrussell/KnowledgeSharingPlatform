@@ -10,26 +10,23 @@ import (
 )
 
 func main() {
-	config, err := internal.LoadConfig()
+	err := internal.LoadConfig()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	db := bootstrap.SetupDatabase(config.DatabaseURL)
-	dbConfig := internal.DbConfig{
-		DB:         db,
-		DbFilePath: config.DatabaseURL,
-	}
-	router := bootstrap.SetupRouter(dbConfig)
+	db := bootstrap.SetupDatabase(internal.GlobalConfig.DatabaseURL)
+
+	router := bootstrap.SetupRouter(bootstrap.SetupHandlers(bootstrap.SetupUseCases(bootstrap.SetupAdapters(db))))
 
 	srv := &http.Server{
 		Handler:      router,
-		Addr:         ":8080",
+		Addr:         ":" + internal.GlobalConfig.ServerPort,
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
 
-	fmt.Println("Starting server on :8080")
+	fmt.Println("Starting server on :" + internal.GlobalConfig.ServerPort)
 	err = srv.ListenAndServe()
 	if err != nil {
 		panic("Failed to start server")

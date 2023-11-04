@@ -8,10 +8,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -21,11 +19,6 @@ import (
 type TestUser struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
-}
-
-// AuthResponse represents the response object containing the authentication token.
-type AuthResponse struct {
-	Token string `json:"token"`
 }
 
 type UserTestSuite struct {
@@ -46,25 +39,13 @@ func (suite *UserTestSuite) SetupTest() {
 		DB:         db,
 		DbFilePath: "test_db.sqlite",
 	}
-	router := bootstrap.SetupRouter(suite.config)
+	router := bootstrap.SetupRouter(bootstrap.SetupHandlers(bootstrap.SetupUseCases(bootstrap.SetupAdapters(db))))
 	suite.Server = httptest.NewServer(router)
 	if err != nil {
 		return
 	}
 
-	suite.registeredUser = users.LoginUserDTO{
-		Username: "registereduser",
-		Password: "Registeredpassword1!",
-	}
-	payload := "{\"username\": \"registereduser\", \"password\": \"Registeredpassword1!\", \"email\": \"test@example.com\"}"
-
-	registerURL := fmt.Sprintf("%s/register", suite.Server.URL)
-
-	req, _ := http.NewRequest(http.MethodPost, registerURL, bytes.NewBuffer([]byte(payload)))
-	res, err := http.DefaultClient.Do(req)
-	data := getBodyAsString(res)
-	assert.NoError(suite.T(), err, "Shouldn't have an error running the registration")
-	assert.Equal(suite.T(), 201, res.StatusCode, fmt.Sprintf("201 for user registration: %s", data))
+	suite.registeredUser, _ = test.RegisterUserAndLogin(suite.T(), suite.Server.URL)
 }
 
 func (suite *UserTestSuite) AfterTest(_ string, _ string) {
@@ -81,13 +62,13 @@ func (suite *UserTestSuite) TestUserAuthentication() {
 		loginURL := fmt.Sprintf("%s/login", suite.Server.URL)
 		req, _ := http.NewRequest(http.MethodPost, loginURL, bytes.NewBuffer(payload))
 		res, err := http.DefaultClient.Do(req)
-		assert.NoError(t, err, "There shouldn't be an error from login")
+		require.NoError(t, err, "There shouldn't be an error from login")
 
-		data := getBodyAsString(res)
+		data := test.GetBodyAsString(res)
 		require.Equal(t, http.StatusOK, res.StatusCode, fmt.Sprintf("Login: Expected status code 200. %s", data))
 
 		// Extract token from login response
-		var authResponse AuthResponse
+		var authResponse test.AuthResponse
 		json.Unmarshal(data, &authResponse)
 		token := authResponse.Token
 
@@ -96,9 +77,9 @@ func (suite *UserTestSuite) TestUserAuthentication() {
 		req, _ = http.NewRequest("POST", logoutURL, nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		res, err = http.DefaultClient.Do(req)
-		assert.NoError(t, err, "No error from logout")
-		data = getBodyAsString(res)
-		assert.Equal(t, http.StatusOK, res.StatusCode, fmt.Sprintf("Logout: Expected status code 200. %s", data))
+		require.NoError(t, err, "No error from logout")
+		data = test.GetBodyAsString(res)
+		require.Equal(t, http.StatusOK, res.StatusCode, fmt.Sprintf("Logout: Expected status code 200. %s", data))
 	})
 
 	// LoginUserWithIncorrectCredentials Test
@@ -111,14 +92,6 @@ func (suite *UserTestSuite) TestUserAuthentication() {
 		loginURL := fmt.Sprintf("%s/login", suite.Server.URL)
 		req, _ := http.NewRequest(http.MethodPost, loginURL, bytes.NewBuffer(payload))
 		res, _ := http.DefaultClient.Do(req)
-		assert.Equal(t, http.StatusUnauthorized, res.StatusCode, "Expected status code 401")
+		require.Equal(t, http.StatusUnauthorized, res.StatusCode, "Expected status code 401")
 	})
-}
-
-func getBodyAsString(res *http.Response) []byte {
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(res.Body)
-	data, _ := io.ReadAll(res.Body)
-	return data
 }

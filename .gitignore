@@ -1,2 +1,3 @@
 backend/KnowledgeSharingPlatform
-backend/*.sqlite
+backend/**/*.sqlite
+.DS_STORE

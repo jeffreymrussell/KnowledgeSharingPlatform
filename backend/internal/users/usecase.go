@@ -1,9 +1,11 @@
 package users
 
 import (
+	"KnowledgeSharingPlatform/internal"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
+	"strconv"
 	"time"
 )
 
@@ -39,9 +41,6 @@ func (usecase *UserUsecase) RegisterUser(registerUserDTO RegisterUserDTO) (User,
 	return user, usecase.Repository.SaveUser(user)
 }
 
-// Secret key to sign the JWT token
-var jwtKey = []byte("your_secret_key_here")
-
 // Claims struct to store the username
 type Claims struct {
 	Username string `json:"username"`
@@ -67,13 +66,14 @@ func (usecase *UserUsecase) LoginUser(username, password string) (string, error)
 		Username: username,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
+			Subject:   strconv.Itoa(user.ID),
 		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(jwtKey)
+	tokenString, err := token.SignedString(internal.GlobalConfig.JWTSecret)
 	if err != nil {
-		return "", fmt.Errorf("error in generating token")
+		return "", fmt.Errorf("error in generating token: %s", err.Error())
 	}
 
 	return tokenString, nil
@@ -84,7 +84,7 @@ func (usecase *UserUsecase) LogoutUser(token string) (string, error) {
 	claims := &Claims{}
 
 	tkn, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
-		return jwtKey, nil
+		return internal.GlobalConfig.JWTSecret, nil
 	})
 
 	if err != nil {

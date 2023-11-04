@@ -6,6 +6,14 @@ import (
 	"os"
 )
 
+func LoadTestConfig() {
+	internal.GlobalConfig = &internal.Config{
+		ServerPort:  "0",
+		JWTSecret:   []byte("test"),
+		DatabaseURL: "test_db.sqlite",
+	}
+}
+
 func InitializeDatabase(db *sql.DB) error {
 	// Execute table creation queries
 	tableCreationQueries := []string{

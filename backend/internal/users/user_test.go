@@ -39,6 +39,8 @@ func (suite *UserTestSuite) SetupTest() {
 		DB:         db,
 		DbFilePath: "test_db.sqlite",
 	}
+	test.LoadTestConfig()
+
 	router := bootstrap.SetupRouter(bootstrap.SetupHandlers(bootstrap.SetupUseCases(bootstrap.SetupAdapters(db))))
 	suite.Server = httptest.NewServer(router)
 	if err != nil {
@@ -53,7 +55,6 @@ func (suite *UserTestSuite) AfterTest(_ string, _ string) {
 }
 func Test_UserTestSuite(t *testing.T) {
 	suite.Run(t, &UserTestSuite{})
-
 }
 func (suite *UserTestSuite) TestUserAuthentication() {
 	suite.T().Run("LoginUser and LogoutUser", func(t *testing.T) {

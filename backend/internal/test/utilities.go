@@ -52,9 +52,9 @@ func RegisterUserAndLogin(t require.TestingT, url string) (users.LoginUserDTO, s
 	loginURL := fmt.Sprintf("%s/login", url)
 	req, _ = http.NewRequest(http.MethodPost, loginURL, bytes.NewBuffer(authPayload))
 	res, err = http.DefaultClient.Do(req)
-	require.NoError(t, err, "There shouldn't be an error from login")
-
 	data = GetBodyAsString(res)
+	require.NoError(t, err, fmt.Sprintf("There shouldn't be an error from login: %s", data))
+
 	require.Equal(t, http.StatusOK, res.StatusCode, fmt.Sprintf("Login: Expected status code 200. %s", data))
 
 	var authResponse AuthResponse

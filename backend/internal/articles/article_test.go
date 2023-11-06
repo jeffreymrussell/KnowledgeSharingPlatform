@@ -68,6 +68,7 @@ func (suite *ArticleTestSuite) SetupTest() {
 
 func (suite *ArticleTestSuite) TearDownTest() {
 	suite.Server.Close()
+	test.DeleteTable(suite.config)
 }
 
 func (suite *ArticleTestSuite) TestCreateArticle() {
